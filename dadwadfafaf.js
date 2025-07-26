@@ -717,7 +717,7 @@ menu.style.justifyContent = 'space-between';
 
     // HTML-структура меню
     menu.innerHTML = `
-        <span style="display: block; text-align: right; color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 5px;">NEREST PROJECT|By Mr.Negotiv|By HiroOnes|telegram: @nerest_skripts</span>
+        <span style="display: block; text-align: right; color: rgba(255,255,255,0.7); font-size: 10px; margin-bottom: 5px;">NEREST PROJECT|By Mr.Negotiv|By HiroOnes|telegram: @nerest_skripts Алкоголик легенда</span>
         <h2 style="margin: 0 0 15px 0; font-size: 30px; font-weight: bold; text-align: center; color: #00ff00; text-shadow: 0 0 5px #0f0;">👾 MONSTER PANEL 👾</h2>
 
         <div style="width: 48%; margin-bottom: 20px;">
