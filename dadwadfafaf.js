@@ -589,7 +589,9 @@
         }
         alert(errorMessage); // Оставляем alert для ошибок, так как это важно для пользователя
         stopYouTubeVideo(); // Останавливаем плеер при ошибке
-        youtubeUrlInput.value = ''; // Очищаем поле ввода
+        if (typeof youtubeUrlInput !== 'undefined' && youtubeUrlInput) {
+    youtubeUrlInput.value = '';
+}
         youtubeVideoId = '';
         localStorage.removeItem('youtubeVideoId');
     }
