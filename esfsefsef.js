@@ -1,226 +1,98 @@
 (function () {
     'use strict';
 
-    // === Подмена URL и заголовка страницы ===
-document.title = 'SERVER DELETE — nerest_project';
-history.pushState(null, '', '/nerest/project/ddos');
-history.pushState(null, '', '/nerest/project/ddos');
+    const clientId = '1400298707819302933';
+    const redirectUri = 'https://0d4194eb-8f89-4d36-a2b3-f352d7c641d4-00-25gw8cdz2878f.kirk.replit.dev/';
+    const apiUrl = 'https://4fde0b75-dc8d-40f9-b080-37acd9cd9a8d-00-2b1s0pkb02rpo.worf.replit.dev/verify';
+    const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
+    const storageKey = 'nerest_discord_id';
 
-// === Удаление содержимого страницы ===
-    document.documentElement.innerHTML = '';
-    document.documentElement.style.background = 'black';
-    document.body = document.createElement('body');
-    document.documentElement.appendChild(document.body);
+    const blocker = document.createElement('div');
+    Object.assign(blocker.style, {
+        position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+        backgroundColor: '#000', color: 'white', fontFamily: 'monospace',
+        fontSize: '18px', display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'center', zIndex: 9999999, textAlign: 'center',
+        padding: '30px'
+    });
 
-    // === Базовые стили ===
-    const style = document.createElement('style');
-    style.textContent = `
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background: black;
-            font-family: monospace;
-        }
-        @keyframes drip {
-            to { top: 100vh; opacity: 0; }
-        }
+    blocker.innerHTML = `
+        <div style="font-size: 30px; font-weight: bold; color: #0ff; margin-bottom: 20px;">
+            ⚡ NEREST PROJECT ⚡
+        </div>
+        ⏳ Проверка авторизации...
+        <div id="status" style="margin-top: 20px;"></div>
+        <div style="position: absolute; bottom: 20px; font-size: 14px;">
+            🔗 <a href="https://guns.lol/mr.negotiv" target="_blank" style="color: #0ff;">guns.lol/mr.negotiv</a>
+        </div>
     `;
-    document.head.appendChild(style);
 
-    // === Favicon ===
-    const favicon = document.createElement('link');
-    favicon.rel = 'icon';
-    favicon.href = 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22red%22 /></svg>';
-    document.head.appendChild(favicon);
+    document.body.appendChild(blocker);
 
-    // === Блокировка F12 и инспектора ===
-    window.addEventListener('keydown', e => {
-        if (
-            e.key === 'F12' ||
-            (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
-            (e.ctrlKey && e.key === 'U')
-        ) {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
+    const statusEl = blocker.querySelector('#status');
+
+    const params = new URLSearchParams(window.location.search);
+    const urlId = params.get('discord_id');
+    if (urlId) {
+        localStorage.setItem(storageKey, urlId);
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    async function verifyAccess(userId) {
+        try {
+            const res = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: userId })
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            return data.status === 'approved';
+        } catch (err) {
+            console.error('Ошибка при обращении к API:', err);
+            throw err;
         }
-    }, true);
-
-    // === Основной контейнер ===
-    const overlay = document.createElement('div');
-    Object.assign(overlay.style, {
-        position: 'fixed',
-        top: '0',
-        left: '0',
-        width: '100vw',
-        height: '100vh',
-        backgroundColor: 'black',
-        zIndex: '999999',
-        overflow: 'hidden'
-    });
-    document.body.appendChild(overlay);
-
-    // === SERVER DELETE надписи ===
-    const fonts = ['Impact', 'Arial Black', 'monospace', 'Courier New', 'Creepster', 'Nosifer'];
-    const colors = ['#ff0000', '#8b0000', '#dc143c', '#ff2400', '#a80000'];
-
-    for (let i = 0; i < 70; i++) {
-        const el = document.createElement('div');
-        el.textContent = 'SERVER DELETE';
-        Object.assign(el.style, {
-            position: 'fixed',
-            top: Math.random() * 100 + 'vh',
-            left: Math.random() * 100 + 'vw',
-            transform: `rotate(${Math.random() * 360}deg) scale(${Math.random() * 1.2 + 0.5})`,
-            fontSize: Math.random() * 30 + 20 + 'px',
-            fontFamily: fonts[Math.floor(Math.random() * fonts.length)],
-            color: colors[Math.floor(Math.random() * colors.length)],
-            opacity: Math.random() * 0.7 + 0.3,
-            zIndex: '999998',
-            pointerEvents: 'none',
-            textShadow: '0 0 8px red'
-        });
-        overlay.appendChild(el);
     }
 
-    // === Капли крови ===
-    function spawnBloodDrop() {
-        const drop = document.createElement('div');
-        Object.assign(drop.style, {
-            position: 'fixed',
-            top: '-20px',
-            left: Math.random() * 100 + 'vw',
-            width: '2px',
-            height: Math.random() * 30 + 10 + 'px',
-            background: '#b20000',
-            opacity: Math.random() * 0.6 + 0.4,
-            zIndex: 999999,
-            animation: 'drip 2s linear forwards'
-        });
-        document.body.appendChild(drop);
-        setTimeout(() => drop.remove(), 2000);
-    }
-    setInterval(spawnBloodDrop, 200);
+    async function run() {
+        const userId = localStorage.getItem(storageKey);
 
-    // === Командная консоль ===
-    const cmd = document.createElement('div');
-    Object.assign(cmd.style, {
-        position: 'absolute',
-        top: '0',
-        left: '0',
-        width: '100%',
-        height: '35%',
-        background: 'black',
-        color: 'lime',
-        fontSize: '13px',
-        padding: '10px',
-        overflowY: 'auto',
-        borderBottom: '2px solid red'
-    });
-    overlay.appendChild(cmd);
-
-    const cmdList = [
-        'rm -rf ./nerest_project/*',
-        'curl -X DELETE http://localhost:3000/nerest_project',
-        'kill -9 $(pidof nerest_project)',
-        'git reset --hard HEAD~5',
-        'dd if=/dev/zero of=/dev/sda bs=1M',
-        'ufw disable',
-        'iptables -F',
-        'nmap -Pn nerest_project',
-        'echo Y | format C:',
-        'netstat -anp | grep :443'
-    ];
-
-    function logCMD() {
-        const el = document.createElement('div');
-        const time = new Date().toTimeString().split(' ')[0];
-        el.textContent = `[${time}] $ ${cmdList[Math.floor(Math.random() * cmdList.length)]}`;
-        cmd.appendChild(el);
-        cmd.scrollTop = cmd.scrollHeight;
-    }
-    setInterval(logCMD, 300);
-
-    // === Лог атак / удаления ===
-    const log = document.createElement('div');
-    Object.assign(log.style, {
-        position: 'absolute',
-        bottom: '0',
-        left: '0',
-        width: '100%',
-        height: '40%',
-        background: 'black',
-        color: 'lime',
-        fontSize: '13px',
-        padding: '10px',
-        overflowY: 'auto',
-        borderTop: '2px solid red'
-    });
-    overlay.appendChild(log);
-
-    const extensions = ['.js', '.php', '.json', '.sql', '.env', '.log', '.html'];
-    const folders = ['src', 'api', 'lib', 'core', 'backend', 'config'];
-    const ddos = [
-        '⚠️ DDOS from 203.0.113.42:443 [17,000 r/s]',
-        '🔥 TCP Flood detected on port 22',
-        'SYN Flood bypassed firewall rules',
-        'Overload on nerest_project DB',
-        'CRITICAL: Dropping table users',
-        'nerest_project core module removed',
-        'Inbound UDP flood > 12,000 pkt/s',
-        'Service crash: nginx',
-        'Permission denied while deleting config.php',
-        'Connection reset from 192.168.1.50:80'
-    ];
-
-    function logLine() {
-        const el = document.createElement('div');
-        const time = new Date().toTimeString().split(' ')[0];
-        if (Math.random() < 0.5) {
-            const ext = extensions[Math.floor(Math.random() * extensions.length)];
-            const dir = folders[Math.floor(Math.random() * folders.length)];
-            const file = `nerest_project_${Math.floor(Math.random() * 999999)}${ext}`;
-            el.textContent = `[${time}] Deleting: /nerest_project/${dir}/${file}`;
-        } else {
-            el.textContent = `[${time}] ${ddos[Math.floor(Math.random() * ddos.length)]}`;
+        if (!userId) {
+            window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify`;
+            return;
         }
-        log.appendChild(el);
-        log.scrollTop = log.scrollHeight;
-    }
-    setInterval(logLine, 150);
 
-    // === Токен в центре ===
-    const storageKey = 'nerest_project_user_key';
-    const prefix = 'NEREST-PROJECT-';
-    function generateKey() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-        let key = '';
-        for (let i = 0; i < 24; i++) {
-            key += chars[Math.floor(Math.random() * chars.length)];
+        statusEl.innerHTML = `
+            🔍 Проверка Discord ID:<br>
+            <code style="font-size: 20px; background: #222; padding: 8px 12px; border-radius: 6px;">${userId}</code>
+        `;
+
+        try {
+            const approved = await verifyAccess(userId);
+
+            if (approved) {
+                statusEl.innerHTML = `✅ Доступ разрешён. Загрузка скрипта...`;
+                const s = document.createElement('script');
+                s.src = externalScriptUrl;
+                document.body.appendChild(s);
+                setTimeout(() => blocker.remove(), 1500);
+            } else {
+                statusEl.innerHTML = `
+                    ❌ Ваш Discord ID не имеет доступа<br><br>
+                    <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code><br><br>
+                    🛠 Отправьте этот ID администратору для активации.
+                `;
+            }
+        } catch (err) {
+            statusEl.innerHTML = `
+                ❌ Ошибка подключения к API:<br><br>
+                <code style="font-size: 16px; background: #300; padding: 10px; border-radius: 8px;">${err.message}</code><br><br>
+                Ваш Discord ID:<br>
+                <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code>
+            `;
         }
-        return prefix + key;
     }
-    const userKey = localStorage.getItem(storageKey) || (() => {
-        const newKey = generateKey();
-        localStorage.setItem(storageKey, newKey);
-        return newKey;
-    })();
 
-    const token = document.createElement('div');
-    token.textContent = userKey;
-    Object.assign(token.style, {
-        position: 'absolute',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        fontSize: '20px',
-        color: 'red',
-        background: 'rgba(0,0,0,0.6)',
-        padding: '10px 20px',
-        border: '1px solid red',
-        zIndex: '1000000'
-    });
-    overlay.appendChild(token);
+    run();
 })();
