@@ -39,7 +39,6 @@
             });
             if (!res.ok) throw new Error(`Failed to fetch user: ${res.status}`);
             const user = await res.json();
-            // Если у пользователя установлен global name (новый формат) — используем его
             const username = user.global_name || `${user.username}#${user.discriminator}`;
             return username;
         } catch (err) {
@@ -53,7 +52,7 @@
             const res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username }) // <-- имя, а не ID
+                body: JSON.stringify({ username })
             });
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -76,7 +75,8 @@
                 try {
                     username = await getUsernameFromToken(token);
                     localStorage.setItem(storageKey, username);
-                    window.location.href = window.location.origin + window.location.pathname; // очистка хэша
+                    window.history.replaceState({}, document.title, window.location.pathname); // очистка URL
+                    run(); // перезапуск с сохранённым ником
                     return;
                 } catch (err) {
                     statusEl.innerHTML = `❌ Ошибка при получении Discord ника:<br><code>${err.message}</code>`;
@@ -122,3 +122,4 @@
 
     run();
 })();
+
