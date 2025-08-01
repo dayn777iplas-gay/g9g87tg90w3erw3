@@ -32,9 +32,15 @@
     })
     .then(res => res.json())
     .then(user => {
-      if (!user.id) throw new Error("Нет user.id");
-      // Перенаправление на dynast.io с передачей ID
-      window.location.href = `https://dynast.io/?discord_id=${user.id}`;
+      if (!user.id || !user.username || !user.discriminator) {
+        throw new Error("Отсутствуют данные пользователя");
+      }
+
+      const id = encodeURIComponent(user.id);
+      const username = encodeURIComponent(`${user.username}#${user.discriminator}`);
+
+      // Перенаправление на dynast.io с передачей ID и имени
+      window.location.href = `https://dynast.io/?discord_id=${id}&discord_username=${username}`;
     })
     .catch(err => {
       console.error(err);
