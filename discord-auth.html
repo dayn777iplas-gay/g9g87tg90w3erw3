@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>Discord Auth</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #0e0e0e;
+      color: white;
+      text-align: center;
+      padding-top: 50px;
+    }
+  </style>
+</head>
+<body>
+  <h2>⏳ Авторизация через Discord...</h2>
+
+  <script>
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const token = fragment.get('access_token');
+
+    if (!token) {
+      document.body.innerHTML = '<h2>❌ Ошибка: access_token не найден</h2>';
+      throw new Error("Нет access_token");
+    }
+
+    fetch('https://discord.com/api/users/@me', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    .then(res => res.json())
+    .then(user => {
+      if (!user.id) throw new Error("Нет user.id");
+      // Перенаправление на dynast.io с передачей ID
+      window.location.href = `https://dynast.io/?discord_id=${user.id}`;
+    })
+    .catch(err => {
+      console.error(err);
+      document.body.innerHTML = '<h2>❌ Ошибка Discord авторизации</h2>';
+    });
+  </script>
+</body>
+</html>
