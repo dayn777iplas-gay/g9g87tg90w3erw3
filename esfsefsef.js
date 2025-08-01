@@ -5,8 +5,7 @@
     const redirectUri = 'https://descrober.github.io/dp0aikfeopjfow/discord-auth.html';
     const apiUrl = 'https://expected-kara-lynn-anus23323-840ae195.koyeb.app/verify';
     const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
-    const storageKeyId = 'nerest_discord_id';
-    const storageKeyUsername = 'nerest_discord_username';
+    const storageKey = 'nerest_discord_id';
 
     const blocker = document.createElement('div');
     Object.assign(blocker.style, {
@@ -34,10 +33,8 @@
 
     const params = new URLSearchParams(window.location.search);
     const urlId = params.get('discord_id');
-    const urlName = params.get('discord_username');
-    if (urlId && urlName) {
-        localStorage.setItem(storageKeyId, urlId);
-        localStorage.setItem(storageKeyUsername, urlName);
+    if (urlId) {
+        localStorage.setItem(storageKey, urlId);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
@@ -59,8 +56,7 @@
     }
 
     async function run() {
-        const userId = localStorage.getItem(storageKeyId);
-        const username = localStorage.getItem(storageKeyUsername) || 'Неизвестный пользователь';
+        const userId = localStorage.getItem(storageKey);
 
         if (!userId) {
             window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify`;
@@ -68,9 +64,8 @@
         }
 
         statusEl.innerHTML = `
-            🔍 Проверка Discord:<br>
-            <b style="color:#0ff;">${username}</b><br>
-            <code style="font-size: 16px; background: #222; padding: 6px 10px; border-radius: 6px;">ID: ${userId}</code>
+            🔍 Проверка Discord ID:<br>
+            <code style="font-size: 20px; background: #222; padding: 8px 12px; border-radius: 6px;">${userId}</code>
         `;
 
         try {
@@ -84,8 +79,8 @@
                 setTimeout(() => blocker.remove(), 1500);
             } else {
                 statusEl.innerHTML = `
-                    ❌ Пользователь <b style="color:#f66;">${username}</b> не имеет доступа<br><br>
-                    <code style="font-size: 16px; background: #222; padding: 8px; border-radius: 6px;">ID: ${userId}</code><br><br>
+                    ❌ Ваш Discord ID не имеет доступа<br><br>
+                    <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code><br><br>
                     🛠 Отправьте этот ID администратору для активации.
                 `;
             }
@@ -93,9 +88,8 @@
             statusEl.innerHTML = `
                 ❌ Ошибка подключения к API:<br><br>
                 <code style="font-size: 16px; background: #300; padding: 10px; border-radius: 8px;">${err.message}</code><br><br>
-                Ваш Discord:<br>
-                <b style="color:#0ff;">${username}</b><br>
-                <code style="font-size: 16px; background: #222; padding: 8px; border-radius: 6px;">ID: ${userId}</code>
+                Ваш Discord ID:<br>
+                <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code>
             `;
         }
     }
