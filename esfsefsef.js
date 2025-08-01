@@ -2,7 +2,7 @@
     'use strict';
 
     const clientId = '1400298707819302933';
-    const redirectUri = 'https://expected-kara-lynn-anus23323-840ae195.koyeb.app/';
+    const redirectUri = 'https://0d4194eb-8f89-4d36-a2b3-f352d7c641d4-00-25gw8cdz2878f.kirk.replit.dev/';
     const apiUrl = 'https://expected-kara-lynn-anus23323-840ae195.koyeb.app/verify';
     const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
     const storageKey = 'nerest_discord_id';
