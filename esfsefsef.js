@@ -5,7 +5,7 @@
     const redirectUri = 'https://descrober.github.io/dp0aikfeopjfow/discord-auth.html';
     const apiUrl = 'https://expected-kara-lynn-anus23323-840ae195.koyeb.app/verify';
     const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
-    const storageKey = 'nerest_discord_id';
+    const storageKey = 'nerest_discord_username';
 
     const blocker = document.createElement('div');
     Object.assign(blocker.style, {
@@ -28,22 +28,32 @@
     `;
 
     document.body.appendChild(blocker);
-
     const statusEl = blocker.querySelector('#status');
 
-    const params = new URLSearchParams(window.location.search);
-    const urlId = params.get('discord_id');
-    if (urlId) {
-        localStorage.setItem(storageKey, urlId);
-        window.history.replaceState({}, document.title, window.location.pathname);
+    async function getUsernameFromToken(token) {
+        try {
+            const res = await fetch('https://discord.com/api/users/@me', {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            if (!res.ok) throw new Error(`Failed to fetch user: ${res.status}`);
+            const user = await res.json();
+            // Если у пользователя установлен global name (новый формат) — используем его
+            const username = user.global_name || `${user.username}#${user.discriminator}`;
+            return username;
+        } catch (err) {
+            console.error('Ошибка при получении Discord ника:', err);
+            throw err;
+        }
     }
 
-    async function verifyAccess(userId) {
+    async function verifyAccess(username) {
         try {
             const res = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: userId })
+                body: JSON.stringify({ username }) // <-- имя, а не ID
             });
 
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -56,20 +66,36 @@
     }
 
     async function run() {
-        const userId = localStorage.getItem(storageKey);
+        let username = localStorage.getItem(storageKey);
 
-        if (!userId) {
-            window.location.href = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify`;
-            return;
+        if (!username) {
+            const hash = new URLSearchParams(window.location.hash.slice(1));
+            const token = hash.get('access_token');
+
+            if (token) {
+                try {
+                    username = await getUsernameFromToken(token);
+                    localStorage.setItem(storageKey, username);
+                    window.location.href = window.location.origin + window.location.pathname; // очистка хэша
+                    return;
+                } catch (err) {
+                    statusEl.innerHTML = `❌ Ошибка при получении Discord ника:<br><code>${err.message}</code>`;
+                    return;
+                }
+            } else {
+                const authUrl = `https://discord.com/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=token&scope=identify`;
+                window.location.href = authUrl;
+                return;
+            }
         }
 
         statusEl.innerHTML = `
-            🔍 Проверка Discord ID:<br>
-            <code style="font-size: 20px; background: #222; padding: 8px 12px; border-radius: 6px;">${userId}</code>
+            🔍 Проверка Discord ника:<br>
+            <code style="font-size: 20px; background: #222; padding: 8px 12px; border-radius: 6px;">${username}</code>
         `;
 
         try {
-            const approved = await verifyAccess(userId);
+            const approved = await verifyAccess(username);
 
             if (approved) {
                 statusEl.innerHTML = `✅ Доступ разрешён. Загрузка скрипта...`;
@@ -79,17 +105,17 @@
                 setTimeout(() => blocker.remove(), 1500);
             } else {
                 statusEl.innerHTML = `
-                    ❌ Ваш Discord ID не имеет доступа<br><br>
-                    <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code><br><br>
-                    🛠 Отправьте этот ID администратору для активации.
+                    ❌ Ваш Discord ник не имеет доступа<br><br>
+                    <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${username}</code><br><br>
+                    🛠 Отправьте этот ник администратору для активации.
                 `;
             }
         } catch (err) {
             statusEl.innerHTML = `
                 ❌ Ошибка подключения к API:<br><br>
                 <code style="font-size: 16px; background: #300; padding: 10px; border-radius: 8px;">${err.message}</code><br><br>
-                Ваш Discord ID:<br>
-                <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${userId}</code>
+                Ваш Discord ник:<br>
+                <code style="font-size: 20px; background: #222; padding: 10px; border-radius: 8px;">${username}</code>
             `;
         }
     }
