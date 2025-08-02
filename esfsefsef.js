@@ -91,7 +91,44 @@
     s.src = externalScriptUrl;
     document.body.appendChild(s);
 
-    setTimeout(() => blocker.remove(), 1500);
+    blocker.remove();
+
+// ⏱ Запускаем цикл проверки доступа
+setInterval(async () => {
+    try {
+        const stillApproved = await verifyAccess(userId);
+        if (!stillApproved) {
+            // Показываем чёрный экран
+const black = document.createElement('div');
+Object.assign(black.style, {
+    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+    backgroundColor: 'black', color: 'red', zIndex: 99999999,
+    display: 'flex', justifyContent: 'center', alignItems: 'center',
+    fontSize: '24px', fontFamily: 'monospace'
+});
+black.innerHTML = '⛔ ПОДПИСКА ОТОЗВАНА<br>СКРИПТ ОТКЛЮЧЁН';
+document.body.appendChild(black);
+
+// Удаляем все таймеры и интервалы
+let id = window.setTimeout(() => {}, 0);
+while (id--) {
+    clearTimeout(id);
+    clearInterval(id);
+}
+
+// Удаляем все скрипты
+document.querySelectorAll('script').forEach(s => s.remove());
+
+// Очищаем localStorage, чтобы при перезагрузке снова попросило авторизацию
+localStorage.removeItem('nerest_discord_id');
+
+// Завершаем выполнение скрипта
+throw new Error("Access revoked");
+        }
+    } catch (err) {
+        console.warn("Ошибка при проверке доступа:", err);
+    }
+}, 10000); // каждые 10 сек
             } else {
                 statusEl.innerHTML = `
                     ❌ Ваш Discord ID не имеет доступа<br><br>
@@ -108,6 +145,18 @@
             `;
         }
     }
-
+    // 🚫 Блокировка F12, Ctrl+Shift+I, Ctrl+U и других
+document.addEventListener('keydown', function (e) {
+    if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) ||
+        (e.ctrlKey && e.key === 'U')
+    ) {
+        e.preventDefault();
+        e.stopPropagation();
+        alert("🚫 Доступ запрещён");
+        return false;
+    }
+});
     run();
 })();
