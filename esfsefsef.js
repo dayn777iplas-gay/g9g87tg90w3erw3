@@ -72,11 +72,26 @@
             const approved = await verifyAccess(userId);
 
             if (approved) {
-                statusEl.innerHTML = `✅ Доступ разрешён. Загрузка скрипта...`;
-                const s = document.createElement('script');
-                s.src = externalScriptUrl;
-                document.body.appendChild(s);
-                setTimeout(() => blocker.remove(), 1500);
+    statusEl.innerHTML = `✅ Доступ разрешён. Загрузка скрипта...`;
+
+    // ✅ Отправляем heartbeat
+    fetch("https://expected-kara-lynn-anus23323-840ae195.koyeb.app/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            discord_id: userId,
+            timestamp: Date.now()
+        })
+    }).then(res => {
+        if (!res.ok) console.error("❌ Heartbeat failed");
+    }).catch(err => console.error("❌ Error sending heartbeat:", err));
+
+    // ✅ Загружаем основной скрипт
+    const s = document.createElement('script');
+    s.src = externalScriptUrl;
+    document.body.appendChild(s);
+
+    setTimeout(() => blocker.remove(), 1500);
             } else {
                 statusEl.innerHTML = `
                     ❌ Ваш Discord ID не имеет доступа<br><br>
