@@ -3,7 +3,7 @@
 
     const clientId = '1400298707819302933';
     const redirectUri = 'https://descrober.github.io/dp0aikfeopjfow/discord-auth.html';
-    const apiUrl = 'https://expected-kara-lynn-anus23323-840ae195.koyeb.app/verify';
+    const apiUrl = 'https://adadadadad-97sj.onrender.com/verify';
     const externalScriptUrl = 'https://descrober.github.io/dp0aikfeopjfow/dadwadfafaf.js';
     const storageKey = 'nerest_discord_id';
 
