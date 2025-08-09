@@ -1,11 +1,3 @@
-// ==UserScript==
-// @name         Nerest IP Access
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @match        *://dynast.io/*
-// @grant        GM_xmlhttpRequest
-// ==/UserScript==
-
 (function() {
     'use strict';
 
