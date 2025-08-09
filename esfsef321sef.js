@@ -1,112 +1,85 @@
-(function () {
+// ==UserScript==
+// @name         Nerest IP Access
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @match        *://dynast.io/*
+// @grant        GM_xmlhttpRequest
+// ==/UserScript==
+
+(function() {
     'use strict';
 
-    const storageKey = 'nerest_project_token';
-    const encodedUrl = atob('aHR0cHM6Ly9kYXluNzc3aXBsYXMtZ2F5LmdpdGh1Yi5pby9nOWc4N3RnOTB3M2VydzMvY29kZXMuanNvbg=='); // codes.json
-    const externalScriptUrl = atob('aHR0cHM6Ly9kZXNjcm9iZXIuZ2l0aHViLmlvL2RwMGFpa2Zlb3BqZm93L2RhZHdhZGZhZmFmLmpz'); // твой основной скрипт
+    const GITHUB_JSON_URL = atob("aHR0cHM6Ly9yYXcuaWdodGh1YnVzZXJjb250ZW50LmNvbS9kYXluNzc3aXBsYXMtZ2F5L2c5Zzg3dGc5MHczZXJ3My9jb2Rlcy5qc29u"); // https://raw.githubusercontent.com/dayn777iplas-gay/g9g87tg90w3erw3/codes.json
 
-    function generateToken() {
-        const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        let token = "NEREST-PROJECT-";
-        for (let i = 0; i < 28; i++) {
-            token += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-        token += "-";
-        return token;
-    }
-
-    function getToken() {
-        let token = localStorage.getItem(storageKey);
-        if (!token) {
-            token = generateToken();
-            localStorage.setItem(storageKey, token);
-        }
-        return token;
-    }
-
-    function showBlocker(html) {
+    function showBlocker(message, color="#0ff") {
         document.body.innerHTML = "";
-        const blocker = document.createElement('div');
-        Object.assign(blocker.style, {
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-            backgroundColor: '#000', color: 'white', fontFamily: 'monospace',
-            fontSize: '18px', display: 'flex', flexDirection: 'column',
-            justifyContent: 'center', alignItems: 'center', zIndex: 9999999, textAlign: 'center',
-            padding: '30px'
+        const div = document.createElement("div");
+        Object.assign(div.style, {
+            position:"fixed", top:"0", left:"0", width:"100%", height:"100%",
+            backgroundColor:"#000", color: color, fontFamily:"monospace",
+            fontSize:"18px", display:"flex", justifyContent:"center",
+            alignItems:"center", textAlign:"center", padding:"20px",
+            whiteSpace:"pre-wrap", zIndex:"99999999"
         });
-        blocker.innerHTML = html;
-        document.body.appendChild(blocker);
-        return blocker;
+        div.textContent = message;
+        document.body.appendChild(div);
+        return div;
     }
 
-    async function verifyToken(token) {
-        return new Promise((resolve) => {
+    function getExternalIP() {
+        return new Promise((res, rej) => {
             GM_xmlhttpRequest({
                 method: "GET",
-                url: encodedUrl + "?_=" + Date.now(),
-                onload: function (res) {
+                url: "https://api.ipify.org?format=json",
+                onload: r => {
                     try {
-                        const list = JSON.parse(res.responseText);
-                        resolve(list.includes(token));
-                    } catch {
-                        resolve(false);
-                    }
+                        const ip = JSON.parse(r.responseText).ip;
+                        res(ip);
+                    } catch { rej("Error parsing IP"); }
                 },
-                onerror: function () {
-                    resolve(false);
-                }
+                onerror: () => rej("Error getting IP")
             });
         });
     }
 
-    async function run() {
-        const token = getToken();
+    function checkIPInList(ip) {
+        return new Promise((res) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: GITHUB_JSON_URL + "?_=" + Date.now(),
+                onload: r => {
+                    try {
+                        const list = JSON.parse(r.responseText);
+                        res(list.includes(ip));
+                    } catch {
+                        res(false);
+                    }
+                },
+                onerror: () => res(false)
+            });
+        });
+    }
 
-        const blocker = showBlocker(`
-            <div style="font-size: 30px; font-weight: bold; color: #0ff; margin-bottom: 20px;">
-                ⚡ NEREST PROJECT ⚡
-            </div>
-            ⏳ Проверка билда...
-            <div id="status" style="margin-top: 20px;"></div>
-            <div style="position: absolute; bottom: 20px; font-size: 14px; color: #0ff;">
-                Build ID:<br>
-                <code style="font-size: 20px; background: #222; padding: 8px 12px; border-radius: 6px;">${token}</code>
-            </div>
-        `);
+    async function main() {
+        showBlocker("⚡ NEREST PROJECT ⚡\n\n⏳ Получаем IP...");
+        try {
+            const ip = await getExternalIP();
+            showBlocker(`⚡ NEREST PROJECT ⚡\n\n⏳ Проверяем доступ для:\n\n${ip}`);
 
-        const statusEl = blocker.querySelector('#status');
-
-        const approved = await verifyToken(token);
-
-        if (approved) {
-            statusEl.innerHTML = `✅ Доступ разрешён. Загрузка скрипта...`;
-
-            const s = document.createElement('script');
-            s.src = externalScriptUrl;
-            document.body.appendChild(s);
-
-            blocker.remove();
-
-            // периодическая проверка
-            setInterval(async () => {
-                const stillApproved = await verifyToken(token);
-                if (!stillApproved) {
-                    showBlocker(`<div style="color:red;font-size:24px;">⛔ ПОДПИСКА ОТОЗВАНА<br>СКРИПТ ОТКЛЮЧЁН</div>`);
-                    localStorage.removeItem(storageKey);
-                    throw new Error("Access revoked");
-                }
-            }, 10000);
-
-        } else {
-            statusEl.innerHTML = `
-                ❌ Ваш билд не активирован<br><br>
-                Отправьте этот Build ID администратору.
-            `;
+            const allowed = await checkIPInList(ip);
+            if (allowed) {
+                document.body.innerHTML = ""; // чистим экран
+                // ======= ВАШ ОСНОВНОЙ КОД СЮДА =======
+            } else {
+                showBlocker(`⛔ ДОСТУП ЗАПРЕЩЕН\n\nВаш IP:\n${ip}`, "#f00");
+            }
+        } catch (e) {
+            showBlocker("Ошибка при проверке доступа\n\n" + e, "#f00");
         }
     }
 
-    // отключаем console.*
-    console.log = console.error = console.warn = console.info = function(){};
+    // Заглушаем консоль
+    console.log = console.error = console.warn = console.info = () => {};
 
-    run();
+    main();
 })();
