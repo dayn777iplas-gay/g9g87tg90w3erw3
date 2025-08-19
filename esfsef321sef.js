@@ -67,7 +67,7 @@
         <a href="${adminUrl}" target="_blank" style="color:#4caf50; text-decoration:underline; font-weight:bold; margin-bottom:15px;">${adminUrl}</a><br><br>
                    Ваш уникальный ключ :<br><br>
         <code id="userKey" style="font-size:24px; user-select: text; background:rgba(0,0,0,0.5); padding:5px 15px; border-radius:5px; cursor:text;">${userKey}</code><br><br>
-        <button id="copyKeyBtn" style="font-size:16px; padding:10px 20px; cursor:pointer; border:none; border-radius:5px; background-color:#4caf50; color:#fff;">SERVER DELETE Скопировать ключ SERVER DELETE</button><br><br>
+        <button id="copyKeyBtn" style="font-size:16px; padding:10px 20px; cursor:pointer; border:none; border-radius:5px; background-color:#4caf50; color:#fff;">Скопировать ключ</button><br><br>
             Ожидание подтверждения...
         <div id="status" style="margin-top:15px; font-size:16px;"></div>
     `;
