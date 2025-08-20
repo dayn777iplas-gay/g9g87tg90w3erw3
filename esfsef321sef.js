@@ -10,7 +10,7 @@
     const channelId = "UCMGXwpHY4W8YY2bzGIlmq4w"; // youtube канал
 
     function generateKeyWithPrefix() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789qwertyuiopasdfghjklzxcvbnm';
         let code = '';
         for (let i = 0; i < keyLength; i++) {
             code += chars.charAt(Math.floor(Math.random() * chars.length));
