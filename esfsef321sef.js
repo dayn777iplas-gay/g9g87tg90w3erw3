@@ -396,7 +396,6 @@
         inp.value="";
       }
     }
-  });
 // ---------- Усиленная анти-консоль ----------
   (function detectDevTools() {
       const threshold = 160;
