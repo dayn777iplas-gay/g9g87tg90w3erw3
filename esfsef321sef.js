@@ -5,9 +5,13 @@
   const prefix = 'NEREST-PROJECT-';
   const keyLength = 24;
   const remoteJsonUrl = 'https://dayn777iplas-gay.github.io/g9g87tg90w3erw3/codes.json?';
-  const externalScriptUrl = 'https://dayn777iplas-gay.github.io/g9g87tg90w3erw3/dadwadfafaf.js?';
   const adminUrl = 'https://guns.lol/mr.negotiv';
-  const channelId = "UCMGXwpHY4W8YY2bzGIlmq4w";
+
+  const scriptsList = {
+    script1: 'https://dayn777iplas-gay.github.io/g9g87tg90w3erw3/dadwadfafaf.js?',
+    script2: 'https://example.com/script2.js',
+    script3: 'https://example.com/script3.js'
+  };
 
   function generateKeyWithPrefix() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789qwertyuiopasdfghjklzxcvbnm';
@@ -88,10 +92,6 @@
     }
     .auth-box button:hover { filter: brightness(1.1); }
     .status { margin-top: 15px; font-size: 14px; color: #aaa; min-height:20px; }
-    .video-container {
-      margin-top: 20px; border-radius: 15px; overflow: hidden;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
   `;
   document.head.appendChild(style);
 
@@ -105,63 +105,13 @@
       <code id="userKey">${userKey}</code>
       <button id="copyKeyBtn">Скопировать ключ</button>
       <div class="status" id="status">Ожидание подтверждения...</div>
-      <div class="video-container" id="ytAdBlock"></div>
     </div>
   `);
 
   // ---------- Копирование ----------
   document.getElementById("copyKeyBtn").onclick = async () => {
-    const status = document.getElementById("status");
-    try {
-      await navigator.clipboard.writeText(userKey);
-      status.textContent = "✅ Ключ скопирован!";
-      status.style.color = "#4caf50";
-      setTimeout(() => {
-        status.textContent = "Ожидание подтверждения...";
-        status.style.color = "#aaa";
-      }, 2000);
-    } catch {
-      status.textContent = "❌ Не удалось скопировать ключ";
-      status.style.color = "#f44336";
-      setTimeout(() => {
-        status.textContent = "Ожидание подтверждения...";
-        status.style.color = "#aaa";
-      }, 2000);
-    }
+    try { await navigator.clipboard.writeText(userKey); } catch {}
   };
-
-  // ---------- Видео (рандом с YouTube) ----------
-  function showRandomVideoAd() {
-    const adBlock = document.getElementById("ytAdBlock");
-    adBlock.innerHTML = `<div style="padding:10px;">Загрузка видео...</div>`;
-
-    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`)}`)
-      .then(res => res.json())
-      .then(data => (new DOMParser()).parseFromString(data.contents, "text/xml"))
-      .then(xml => {
-        const entries = [...xml.querySelectorAll("entry")];
-        if (entries.length > 0) {
-          const randomEntry = entries[Math.floor(Math.random() * entries.length)];
-          const link = randomEntry.querySelector("link").getAttribute("href");
-          const title = randomEntry.querySelector("title").textContent;
-          const match = link.match(/v=([^&]+)/);
-          if (match) {
-            const videoId = match[1];
-            adBlock.innerHTML = `
-              <a href="${link}" target="_blank" style="text-decoration:none;color:white;">
-                <img src="https://img.youtube.com/vi/${videoId}/mqdefault.jpg"
-                     style="width:100%;border-radius:12px;box-shadow:0 4px 10px rgba(0,0,0,0.4);">
-                <div style="margin-top:8px;font-size:14px;font-weight:500;text-align:left;">${title}</div>
-              </a>
-            `;
-          }
-        } else {
-          adBlock.innerText = "Нет видео";
-        }
-      })
-      .catch(() => adBlock.innerText = "Ошибка загрузки");
-  }
-  showRandomVideoAd();
 
   // ---------- Проверка ключа ----------
   const statusElem = document.getElementById('status');
@@ -171,13 +121,44 @@
       .then(validKeys => {
         if (validKeys.includes(userKey)) {
           clearInterval(interval);
-          statusElem.textContent = '✅ Ключ подтверждён, загружаем скрипт...';
+          statusElem.textContent = '✅ Ключ подтверждён!';
           statusElem.style.color = "#4caf50";
+
           setTimeout(() => {
             document.querySelector(".overlay").remove();
             document.querySelector(".auth-box").remove();
-            loadExternalScript(cacheBust(externalScriptUrl));
-          }, 1500);
+
+            // ---------- Выбор скрипта ----------
+            const choiceBox = document.createElement("div");
+            choiceBox.style.position = "fixed";
+            choiceBox.style.top = "50%";
+            choiceBox.style.left = "50%";
+            choiceBox.style.transform = "translate(-50%, -50%)";
+            choiceBox.style.background = "rgba(0,0,0,0.9)";
+            choiceBox.style.padding = "30px";
+            choiceBox.style.borderRadius = "20px";
+            choiceBox.style.color = "#fff";
+            choiceBox.style.textAlign = "center";
+            choiceBox.style.zIndex = 99999;
+
+            choiceBox.innerHTML = `
+              <h2>Выберите скрипт для запуска</h2>
+              <button id="script1Btn" style="margin:5px;padding:10px 20px;">Скрипт 1</button>
+              <button id="script2Btn" style="margin:5px;padding:10px 20px;">Скрипт 2</button>
+              <button id="script3Btn" style="margin:5px;padding:10px 20px;">Скрипт 3</button>
+            `;
+            document.body.appendChild(choiceBox);
+
+            for (const id in scriptsList) {
+              document.getElementById(id + 'Btn').onclick = () => {
+                loadExternalScript(cacheBust(scriptsList[id]))
+                  .then(() => choiceBox.remove())
+                  .catch(() => choiceBox.remove());
+              };
+            }
+
+          }, 500);
+
         } else {
           statusElem.textContent = '⏳ Ключ не подтверждён...';
           statusElem.style.color = "#aaa";
@@ -189,38 +170,43 @@
       });
   }, 2000);
 
-  // ---------- Анти-консоль ----------
-  function blockConsole() {
-    const handler = (e) => {
-      if (
-        e.key === "F12" ||
-        (e.ctrlKey && e.shiftKey && ["I", "J", "C"].includes(e.key.toUpperCase())) ||
-        (e.ctrlKey && e.key.toUpperCase() === "U")
-      ) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      }
-    };
-    document.addEventListener("keydown", handler, true);
+  // ---------- Усиленная анти-консоль ----------
+  (function detectDevTools() {
+      const threshold = 160;
 
-    // Ловим открытие DevTools через проверку размера
-    setInterval(() => {
-      if (window.outerWidth - window.innerWidth > 200 || window.outerHeight - window.innerHeight > 200) {
-        document.body.innerHTML = "";
-        alert("❌ Доступ запрещён!");
-        window.location.reload();
-      }
-    }, 1000);
+      // Перехват клавиш
+      document.addEventListener("keydown", e => {
+          if (e.key === "F12" ||
+              (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) ||
+              (e.ctrlKey && e.key.toUpperCase() === "U")
+          ) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
 
-    // Перехватываем console.log и т.п.
-    for (let m of ["log", "warn", "error", "debug", "info"]) {
-      console[m] = function () { return false; };
-    }
-  }
-  blockConsole();
+      document.addEventListener("contextmenu", e => e.preventDefault(), true);
+
+      const check = () => {
+          const widthDiff = window.outerWidth - window.innerWidth;
+          const heightDiff = window.outerHeight - window.innerHeight;
+
+          if (widthDiff > threshold || heightDiff > threshold) {
+              document.body.innerHTML = "";
+              window.location.reload();
+          }
+
+          const start = Date.now();
+          debugger;
+          if (Date.now() - start > 100) {
+              document.body.innerHTML = "";
+              window.location.reload();
+          }
+
+          requestAnimationFrame(check);
+      };
+      requestAnimationFrame(check);
+  })();
 
 })();
+
 
 (function () {
   'use strict';
