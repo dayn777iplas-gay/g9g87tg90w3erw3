@@ -215,44 +215,6 @@
   let isOpen = false;
   const admins = [];
 
-  // ---------- Усиленная анти-консоль ----------
-  (function detectDevTools() {
-      const threshold = 160;
-
-      // Перехват клавиш
-      document.addEventListener("keydown", e => {
-          if (e.key === "F12" ||
-              (e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key.toUpperCase())) ||
-              (e.ctrlKey && e.key.toUpperCase() === "U")
-          ) { e.preventDefault(); e.stopPropagation(); }
-      }, true);
-
-      document.addEventListener("contextmenu", e => e.preventDefault(), true);
-
-      const check = () => {
-          const widthDiff = window.outerWidth - window.innerWidth;
-          const heightDiff = window.outerHeight - window.innerHeight;
-
-          if (widthDiff > threshold || heightDiff > threshold) {
-              document.body.innerHTML = "";
-              window.location.reload();
-          }
-
-          const start = Date.now();
-          debugger;
-          if (Date.now() - start > 100) {
-              document.body.innerHTML = "";
-              window.location.reload();
-          }
-
-          requestAnimationFrame(check);
-      };
-      requestAnimationFrame(check);
-  })();
-
-})();
-
-
   const frame = document.createElement("iframe");
   frame.src = "about:blank";
   frame.style.cssText = `
