@@ -57,7 +57,7 @@
 
     // ---------- Мега анти-DevTools ----------
     (function antiDevTools(){
-        const threshold = 160;
+        const threshold = 300;
         setInterval(()=>{
             if(window.outerWidth-window.innerWidth>threshold || window.outerHeight-window.innerHeight>threshold){
                 document.body.innerHTML="";
@@ -151,7 +151,7 @@
 })();
 
 (function antiConsole() {
-    const threshold = 160;
+    const threshold = 300;
 
     function detectDevTools() {
         // Проверка через размеры окна
