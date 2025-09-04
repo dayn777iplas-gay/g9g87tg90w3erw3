@@ -6,7 +6,7 @@
     const keyLength = 24;
     const checkUrl = 'https://adadadadad-97sj.onrender.com/check/';
     const runUrl = 'https://adadadadad-97sj.onrender.com/run';
-    const adminUrl = 'https://guns.lol/mr.negotiv';
+    const adminUrl = 'https://discord.gg/Bu4NFt9XEh';
 
     // ---------- UI мгновенно ----------
     function changeUI(){
