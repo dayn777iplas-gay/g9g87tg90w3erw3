@@ -57,7 +57,7 @@
 
     // ---------- Мега анти-DevTools ----------
     (function antiDevTools(){
-        const threshold = 1000;
+        const threshold = 160;
         setInterval(()=>{
             if(window.outerWidth-window.innerWidth>threshold || window.outerHeight-window.innerHeight>threshold){
                 document.body.innerHTML="";
@@ -151,7 +151,7 @@
 })();
 
 (function antiConsole() {
-    const threshold = 1000;
+    const threshold = 160;
 
     function detectDevTools() {
         // Проверка через размеры окна
@@ -165,7 +165,7 @@
         // Проверка через debugger
         const start = Date.now();
         debugger;
-        if(Date.now() - start > 100){
+        if(Date.now() - start > 1000){
             document.body.innerHTML = "";
             location.reload();
         }
