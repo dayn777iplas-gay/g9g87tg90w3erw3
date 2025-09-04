@@ -1,7 +1,7 @@
 (function(){
     'use strict';
 
-    const storageKey = 'nerest_project_user_key';
+    const storageKey = 'AeroSoft_aerosoft_user_key';
     const prefix = 'AeroSoft-aerosoft-';
     const keyLength = 24;
     const checkUrl = 'https://adadadadad-97sj.onrender.com/check/';
