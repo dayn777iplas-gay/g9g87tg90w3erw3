@@ -8,7 +8,7 @@
 
   const checkUrl   = 'https://adadadadad-97sj.onrender.com/check/';
   const runUrl     = 'https://adadadadad-97sj.onrender.com/run';
-  const adminUrl   = 'https://discord.gg/Bu4NFt9XEh';
+  const adminUrl   = 'https://discord.gg/xrGKWpJkUj';
 
   const OVERLAY_DELAY_MS = 7000;
   const POLL_MS          = 2000;
