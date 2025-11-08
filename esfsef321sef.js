@@ -164,7 +164,7 @@ setInterval(changeUI, 1000); // останется, но функция посл
 })();
 
 (function antiDevToolsUltraInstant(){
-  const THRESHOLD_PX       = 100; // чувствительность по размерам (докнутые DevTools)
+  const THRESHOLD_PX       = 150; // чувствительность по размерам (докнутые DevTools)
   const DEBUGGER_BUDGET_MS = 1;  // пауза на debugger — чем меньше, тем резче
   const INTERVAL_MS        = 1;  // частота поллинга
 
