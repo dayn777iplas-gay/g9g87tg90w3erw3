@@ -835,7 +835,6 @@ setInterval(changeUI, 1000); // останется, но функция посл
   };
 })();
 
-})();
 (function() {
     'use strict';
 
