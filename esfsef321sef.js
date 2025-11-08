@@ -457,223 +457,383 @@ setInterval(changeUI, 1000); // останется, но функция посл
 (function () {
   'use strict';
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Config
+  // ─────────────────────────────────────────────────────────────────────────────
+  const WS_URL = "wss://adadadadad-1-9nhi.onrender.com"; // your server
   const TOGGLE_KEY = "F8";
-  let isOpen = false;
+  const STORE_KEY = "neonchat_v2"; // stores pos/size/state
+  const MAX_TOASTS = 5;
+  const HEARTBEAT_MS = 25_000;
 
-  // Чат
-  const frame = document.createElement("iframe");
-  frame.src = "about:blank";
-  frame.style.cssText = `
+  // ─────────────────────────────────────────────────────────────────────────────
+  // State helpers
+  // ─────────────────────────────────────────────────────────────────────────────
+  const defaultState = {
+    open: false,
+    collapsed: false,
+    x: 20,
+    y: null, // if null, anchor to bottom by 20px
+    bottom: 20,
+    width: 480,
+    height: 420
+  };
+  let state = loadState();
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { ...defaultState };
+      const parsed = JSON.parse(raw);
+      return { ...defaultState, ...parsed };
+    } catch { return { ...defaultState }; }
+  }
+  function saveState() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch {}
+  }
+
+  const selfNick = localStorage.getItem('chat_nick') || null;
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Root container (draggable + resizable)
+  // ─────────────────────────────────────────────────────────────────────────────
+  const wrap = document.createElement('div');
+  wrap.id = 'neonchat-wrap';
+  wrap.style.cssText = `
     position: fixed;
-    bottom: 20px;
-    left: 20px;
-    width: 450px;
-    height: 350px;
-    border: 2px solid #555;
-    border-radius: 10px;
+    ${state.y == null ? `bottom:${state.bottom}px;` : `top:${state.y}px;`}
+    left: ${state.x}px;
+    width: ${state.width}px;
+    height: ${state.height}px;
+    min-width: 360px;
+    min-height: 200px;
+    background: #0b1220;
+    border: 1px solid #334155;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.45), 0 0 18px rgba(34,211,238,.18);
+    overflow: hidden;
+    resize: both;
     z-index: 999999;
-    display: none;
-    background: #111827;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(0,255,255,0.2);
+    display: ${state.open ? 'block' : 'none'};
   `;
-  document.body.appendChild(frame);
+  document.body.appendChild(wrap);
 
-  const doc = frame.contentDocument || frame.contentWindow.document;
+  // Header bar (drag handle + controls)
+  const header = document.createElement('div');
+  header.id = 'neonchat-header';
+  header.style.cssText = `
+    height: 38px;
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(180deg, #0f172a, #0b1220);
+    color: #e2f1ff;
+    padding: 0 10px;
+    cursor: grab;
+    user-select: none;
+    border-bottom: 1px solid #334155;
+  `;
+  header.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="nc-status" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#64748b;box-shadow:0 0 10px rgba(100,116,139,.6);"></span>
+      <strong style="letter-spacing:.3px">TamiNeg Chat</strong>
+      <span style="opacity:.6;font-size:12px;">(${TOGGLE_KEY})</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <button id="nc-min" title="Свернуть" style="all:unset;cursor:pointer;padding:4px 6px;border-radius:8px;background:#111827;border:1px solid #334155">▁</button>
+      <button id="nc-hide" title="Скрыть (toggle)" style="all:unset;cursor:pointer;padding:4px 6px;border-radius:8px;background:#111827;border:1px solid #334155">✕</button>
+    </div>`;
+  wrap.appendChild(header);
+
+  // Iframe (chat UI lives inside)
+  const frame = document.createElement('iframe');
+  frame.title = 'Neon Chat Frame';
+  frame.style.cssText = `
+    width: 100%;
+    height: calc(100% - 38px);
+    border: 0;
+    display: ${state.collapsed ? 'none' : 'block'};
+    background: #0b1220;
+  `;
+  wrap.appendChild(frame);
+
+  // Toast stack (top-right of page)
+  const toasts = document.createElement('div');
+  toasts.id = 'neonchat-toasts';
+  toasts.style.cssText = `
+    position: fixed; top: 20px; right: 20px; z-index: 1000000;
+    display: flex; flex-direction: column; gap: 10px;
+  `;
+  document.body.appendChild(toasts);
+
+  // Collapsed style
+  function setCollapsed(v) {
+    state.collapsed = !!v; saveState();
+    frame.style.display = state.collapsed ? 'none' : 'block';
+    wrap.style.height = state.collapsed ? '38px' : `${state.height}px`;
+  }
+
+  // Hide/Show (toggle)
+  function setOpen(v) {
+    state.open = !!v; saveState();
+    wrap.style.display = state.open ? 'block' : 'none';
+    if (state.open && !state.collapsed) focusInput();
+  }
+
+  // Dragging
+  (function makeDraggable() {
+    let startX=0, startY=0, startL=0, startT=0, startB=null, fromBottom=false, moving=false;
+    header.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      moving = true;
+      header.style.cursor = 'grabbing';
+      startX = e.clientX; startY = e.clientY;
+      const rect = wrap.getBoundingClientRect();
+      startL = rect.left; startT = rect.top; startB = window.innerHeight - rect.bottom;
+      fromBottom = (state.y == null);
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp, { once: true });
+    });
+    function onMove(e) {
+      if (!moving) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      const newL = Math.max(0, Math.min(window.innerWidth - wrap.offsetWidth, startL + dx));
+      let newT = startT + dy;
+      let newB = startB - dy;
+      if (fromBottom) {
+        newB = Math.max(0, Math.min(window.innerHeight - 38, newB));
+        wrap.style.bottom = `${newB}` + 'px';
+        wrap.style.top = '';
+        state.y = null; state.bottom = Math.round(newB);
+      } else {
+        newT = Math.max(0, Math.min(window.innerHeight - 38, newT));
+        wrap.style.top = `${newT}` + 'px';
+        wrap.style.bottom = '';
+        state.y = Math.round(newT);
+      }
+      wrap.style.left = `${Math.round(newL)}px`;
+      state.x = Math.round(newL);
+    }
+    function onUp(){ moving = false; header.style.cursor = 'grab'; saveState(); document.removeEventListener('mousemove', onMove); }
+  })();
+
+  // Resize observer → persist size
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(entries => {
+      const cr = entries[0].contentRect;
+      if (!state.collapsed) {
+        state.width = Math.round(cr.width);
+        state.height = Math.round(cr.height);
+        saveState();
+      }
+    }).observe(wrap);
+  }
+
+  // Controls (без TS !-оператора)
+  const btnMin = header.querySelector('#nc-min');
+  if (btnMin) btnMin.addEventListener('click', () => setCollapsed(!state.collapsed));
+  const btnHide = header.querySelector('#nc-hide');
+  if (btnHide) btnHide.addEventListener('click', () => setOpen(false));
+
+  // Global keyboard toggle (доп. проверка key/code)
+  document.addEventListener('keydown', (e) => {
+    if (e.code === TOGGLE_KEY || e.key === TOGGLE_KEY) { e.preventDefault(); setOpen(!state.open); }
+    if (e.key === 'Escape' && state.open) { setOpen(false); }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Build iframe UI
+  // ─────────────────────────────────────────────────────────────────────────────
+  const doc = frame.contentDocument || (frame.contentWindow ? frame.contentWindow.document : null);
+  if (!doc) return; // safety
   doc.open();
-  doc.write(`
-<html>
-<head>
+  doc.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/>
   <style>
-    html, body {
-      margin:0;
-      height:100%;
-      background: #111827;
-      color: #0ff;
-      font-family: sans-serif;
-      display:flex;
-      flex-direction:column;
+    :root{
+      --bg:#0b1220; --panel:#0f172a; --panel2:#172033; --surface:#1f2937; --text:#d9e9ff; --muted:#9fb2c7; --acc:#22d3ee; --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
     }
-    #msgs {
-      flex:1;
-      overflow-y:auto;
-      padding:5px;
-      font-size:14px;
-      background: #1f2937;
-      border-radius: 10px;
-      margin:5px;
-      border: 2px solid #555;
-      box-shadow: 0 0 10px rgba(0,255,255,0.2), inset 0 2px 5px rgba(0,0,0,0.3);
-    }
-    #inp {
-      width:100%;
-      height:50px;
-      border:0;
-      border-top:2px solid #555;
-      padding:5px;
-      font-size:14px;
-      outline:none;
-      background:#0f172a;
-      color:#0ff;
-      resize:none;
-      font-family: monospace;
-      border-radius: 0 0 10px 10px;
-      box-shadow: 0 0 10px rgba(0,255,255,0.2), inset 0 2px 5px rgba(0,0,0,0.3);
-    }
+    html,body{height:100%; margin:0; font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial; color:var(--text); background:var(--bg);}
+    .root{height:100%; display:flex; flex-direction:column;}
+    .msgs{flex:1; overflow:auto; padding:10px; background:linear-gradient(180deg,var(--panel),var(--panel2));}
+    .composer{display:flex; gap:8px; padding:8px; border-top:1px solid #334155; background:var(--panel);}
+    textarea{flex:1; min-height:40px; max-height:120px; padding:8px 10px; border-radius:10px; background:#0c1426; color:var(--text); border:1px solid #2b3b55; outline:none; resize:vertical;}
+    button.send{padding:8px 12px; border-radius:10px; background:#0c1426; color:var(--text); border:1px solid #2b3b55; cursor:pointer}
+    button.send:hover{box-shadow:0 0 10px rgba(34,211,238,.25);}
+
+    .bubble{display:flex; gap:8px; margin:6px 2px;}
+    .avatar{width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#03272d; border:1px solid rgba(255,255,255,.08)}
+    .card{flex:1; background:rgba(3,10,22,.6); border:1px solid #2b3b55; border-radius:12px; padding:6px 10px; box-shadow:inset 0 1px 0 rgba(255,255,255,.03), 0 0 12px rgba(34,211,238,.08)}
+    .meta{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted);}
+    .nick{color:#b8e7ff; font-weight:600}
+    .time{opacity:.7}
+    .text{white-space:pre-wrap; word-break:break-word; margin-top:2px}
+    .system .card{background:#111827; border-color:#3b4255; color:#a8b3c7}
+    .self .card{border-color:#38bdf8}
+    .verified{margin-left:4px; color:#22c55e}
+
+    .statusbar{position:absolute; top:6px; right:10px; font-size:12px; color:var(--muted)}
   </style>
-</head>
-<body>
-  <div id="msgs"></div>
-  <textarea id="inp" placeholder="Сообщение... (Enter=отправить)"></textarea>
-</body>
-</html>
-  `);
+  </head><body>
+    <div class="root">
+      <div class="msgs" id="msgs"></div>
+      <div class="composer">
+        <textarea id="inp" placeholder="Сообщение… (Enter — отправить, Shift+Enter — перенос)"></textarea>
+        <button class="send" id="sendBtn" title="Отправить">↵</button>
+      </div>
+    </div>
+    <div class="statusbar" id="statusbar">offline</div>
+  </body></html>`);
   doc.close();
 
-  const msgs = doc.querySelector("#msgs");
-  const inp = doc.querySelector("#inp");
+  const d = doc; // alias
+  const elMsgs = d.getElementById('msgs');
+  const elInp  = d.getElementById('inp');
+  const elSend = d.getElementById('sendBtn');
+  const elStatusBar = d.getElementById('statusbar');
+  const statusDot = header.querySelector('#nc-status');
 
-  // Уведомления в правом верхнем углу
-  const notificationDiv = document.createElement("div");
-  notificationDiv.style.position = "fixed";
-  notificationDiv.style.top = "20px";
-  notificationDiv.style.right = "20px";
-  notificationDiv.style.display = "flex";
-  notificationDiv.style.flexDirection = "column";
-  notificationDiv.style.gap = "10px";
-  notificationDiv.style.zIndex = "1000000";
-  document.body.appendChild(notificationDiv);
+  // ─────────────────────────────────────────────────────────────────────────────
+  // WebSocket with reconnect & heartbeat
+  // ─────────────────────────────────────────────────────────────────────────────
+  let ws = null; let reconnect = 1000; let pingTimer = null;
 
-  const ws = new WebSocket("wss://adadadadad-1-9nhi.onrender.com");
-
-  ws.onopen = () => {
-    const savedNick = localStorage.getItem("chat_nick");
-    const savedPass = localStorage.getItem("chat_pass");
-    if(savedNick && savedPass){
-        setTimeout(()=> {
-            ws.send(`/login ${savedNick} ${savedPass}`);
-        }, 500);
-    }
-  };
-
-  ws.onmessage = (event) => {
-    const msg = event.data;
-
-    if(msg.startsWith("[Система]")) {
-      addSystemMsg(msg); // только в чат
-      return;
-    }
-
-    addPlayerMsg(msg); // чат + уведомления
-  };
-
-  function addSystemMsg(text){
-    const m = doc.createElement("div");
-    m.style.color = "#888"; // серый для системных сообщений
-    m.style.marginBottom = "3px";
-    m.textContent = text;
-    msgs.appendChild(m);
-    msgs.scrollTop = msgs.scrollHeight;
+  function setStatus(mode) {
+    const color = mode === 'online' ? '#22c55e' : (mode === 'connecting' ? '#f59e0b' : '#64748b');
+    if (statusDot) statusDot.style.background = color;
+    if (elStatusBar) elStatusBar.textContent = mode;
   }
 
-  function addPlayerMsg(text){
-    const m = doc.createElement("div");
-    m.style.display = "flex";
-    m.style.alignItems = "center";
-    m.style.marginBottom = "2px";
+  function startHeartbeat(){ stopHeartbeat(); pingTimer = setInterval(()=>{ if(ws && ws.readyState === 1) ws.send('ping'); }, HEARTBEAT_MS); }
+  function stopHeartbeat(){ if(pingTimer) { clearInterval(pingTimer); pingTimer = null; } }
 
-    const nickPart = text.split(":")[0];
-    const msgPart = text.includes(":") ? text.split(":").slice(1).join(":") : text;
-
-    const avatar = doc.createElement("div");
-    avatar.style.width = "24px";
-    avatar.style.height = "24px";
-    avatar.style.borderRadius = "50%";
-    avatar.style.backgroundColor = stringToColor(nickPart);
-    avatar.style.color = "#0ff";
-    avatar.style.display = "flex";
-    avatar.style.alignItems = "center";
-    avatar.style.justifyContent = "center";
-    avatar.style.fontSize = "14px";
-    avatar.style.fontWeight = "bold";
-    avatar.style.marginRight = "5px";
-    avatar.style.cursor = "pointer";
-    avatar.textContent = nickPart[0].toUpperCase();
-    avatar.onclick = () => ws.send(`/профиль ${nickPart}`);
-
-    const msgText = doc.createElement("span");
-    msgText.style.display = "flex";
-    msgText.style.alignItems = "center";
-    msgText.appendChild(doc.createTextNode(msgPart ? `${nickPart}: ${msgPart}` : text));
-
-    m.appendChild(avatar);
-    m.appendChild(msgText);
-    msgs.appendChild(m);
-    msgs.scrollTop = msgs.scrollHeight;
-
-    // уведомления
-    showNotification(`${nickPart}: ${msgPart}`);
+  function connect(){
+    setStatus('connecting');
+    try { ws = new WebSocket(WS_URL); } catch (e) { onClose(); return; }
+    ws.onopen = () => {
+      setStatus('online'); reconnect = 1000; startHeartbeat();
+      const nick = localStorage.getItem('chat_nick');
+      const pass = localStorage.getItem('chat_pass');
+      if (nick && pass) setTimeout(()=>{ try { ws.send(`/login ${nick} ${pass}`); } catch {} }, 200);
+    };
+    ws.onmessage = (ev) => handleIncoming(ev.data);
+    ws.onerror = () => { /* swallow, will close */ };
+    ws.onclose = onClose;
+  }
+  function onClose(){
+    setStatus('offline'); stopHeartbeat();
+    setTimeout(connect, reconnect);
+    reconnect = Math.min(reconnect * 1.7, 30_000);
   }
 
-  function showNotification(text){
-    const n = document.createElement("div");
-    n.textContent = text;
-    n.style.background = "#1f2937";
-    n.style.color = "#0ff";
-    n.style.padding = "8px 12px";
-    n.style.borderRadius = "8px";
-    n.style.border = "2px solid #555";
-    n.style.boxShadow = "0 4px 15px rgba(0,0,0,0.5), 0 0 10px rgba(0,255,255,0.2)";
-    n.style.fontFamily = "monospace";
-    n.style.opacity = "0";
-    n.style.transform = "translateX(50px)";
-    n.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+  connect();
 
-    notificationDiv.appendChild(n);
-
-    requestAnimationFrame(() => {
-      n.style.opacity = "1";
-      n.style.transform = "translateX(0)";
-    });
-
-    setTimeout(()=>{
-      n.style.opacity = "0";
-      n.style.transform = "translateX(50px)";
-      setTimeout(()=>notificationDiv.removeChild(n), 300);
-    }, 3000);
-  }
-
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Rendering helpers
+  // ─────────────────────────────────────────────────────────────────────────────
   function stringToColor(str){
-    let hash = 0;
-    for(let i=0;i<str.length;i++){ hash = str.charCodeAt(i) + ((hash<<5)-hash); }
-    let color = '#';
-    for(let i=0;i<3;i++){
-      const value = (hash >> (i*8)) & 0xFF;
-      color += ('00'+value.toString(16)).substr(-2);
-    }
+    let hash = 0; for (let i=0;i<str.length;i++) hash = str.charCodeAt(i) + ((hash<<5)-hash);
+    let color = '#'; for (let i=0;i<3;i++){ const v=(hash>>(i*8))&0xFF; color += ('00'+v.toString(16)).slice(-2); }
     return color;
   }
+  function maybeScrollToBottom() {
+    if (!elMsgs) return;
+    const nearBottom = elMsgs.scrollTop + elMsgs.clientHeight >= elMsgs.scrollHeight - 40;
+    if (nearBottom) elMsgs.scrollTop = elMsgs.scrollHeight;
+  }
+  function nowTime(){ const dt=new Date(); const h = String(dt.getHours()).padStart(2,'0'); const m=String(dt.getMinutes()).padStart(2,'0'); return `${h}:${m}`; }
 
-  function toggle(force){
-    isOpen = force!==undefined?force:!isOpen;
-    frame.style.display = isOpen?"block":"none";
-    if(isOpen) inp.focus();
+  function renderSystem(text){
+    if (!elMsgs) return;
+    const row = d.createElement('div'); row.className = 'bubble system';
+    row.innerHTML = `<div class="avatar" style="background:#1f2937;color:#8aa0b8">S</div>
+      <div class="card"><div class="meta"><span class="nick">Система</span><span class="time">${nowTime()}</span></div>
+      <div class="text"></div></div>`;
+    row.querySelector('.text').textContent = text;
+    elMsgs.appendChild(row); maybeScrollToBottom();
   }
 
-  document.addEventListener("keydown", e=>{
-    if(e.code===TOGGLE_KEY){ e.preventDefault(); toggle(); }
-    if(e.key==="Escape" && isOpen){ toggle(false); }
-  });
+  function renderPlayer(full){
+    if (!elMsgs) return;
+    const i = full.indexOf(":");
+    const nick = i >= 0 ? full.slice(0, i) : full;
+    const msg  = i >= 0 ? full.slice(i+1) : '';
+    const color = stringToColor(nick);
+    const isSelf = selfNick && nick.trim() === selfNick.trim();
 
-  inp.addEventListener("keydown", e=>{
-    if(e.key==="Enter" && !e.shiftKey){
-      e.preventDefault();
-      const text = inp.value.trim();
-      if(text && ws.readyState === WebSocket.OPEN){
-        ws.send(text);
-        inp.value="";
-      }
+    const row = d.createElement('div'); row.className = 'bubble' + (isSelf ? ' self' : '');
+    row.innerHTML = `
+      <div class="avatar" title="Открыть профиль" style="background:${color}">${(nick[0]||'?').toUpperCase()}</div>
+      <div class="card">
+        <div class="meta"><span class="nick">${escapeHTML(nick)}</span>${isSelf?'<span class="verified">✓</span>':''}<span class="time">${nowTime()}</span></div>
+        <div class="text"></div>
+      </div>`;
+    const txt = row.querySelector('.text');
+    if (txt) txt.textContent = i >= 0 ? msg.trim() : full;
+
+    // avatar click → /профиль
+    const av = row.querySelector('.avatar');
+    if (av) av.addEventListener('click', () => {
+      try { ws && ws.readyState===1 && ws.send(`/профиль ${nick}`); } catch {}
+    });
+
+    elMsgs.appendChild(row); maybeScrollToBottom();
+
+    // Toast
+    if (!isSelf) showToast(`${nick}: ${msg.trim()}`);
+  }
+
+  function escapeHTML(s){ return s.replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]); }); }
+
+  function handleIncoming(msg){
+    if (typeof msg !== 'string') msg = String(msg);
+    if (msg.startsWith('[Система]')) { renderSystem(msg); return; }
+    renderPlayer(msg);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Sending
+  // ─────────────────────────────────────────────────────────────────────────────
+  function sendCurrent(){
+    if (!elInp) return;
+    const text = elInp.value.trim(); if (!text) return;
+    if (ws && ws.readyState === 1) {
+      try { ws.send(text); elInp.value = ''; elInp.focus(); } catch {}
+    } else {
+      renderSystem('Нет соединения — сообщение не отправлено');
     }
+  }
+  if (elInp) elInp.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendCurrent(); }
   });
+  if (elSend) elSend.addEventListener('click', sendCurrent);
+
+  function focusInput(){ try { elInp && elInp.focus(); } catch {} }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Toasts
+  // ─────────────────────────────────────────────────────────────────────────────
+  function showToast(text){
+    while (toasts.childElementCount >= MAX_TOASTS) toasts.removeChild(toasts.firstElementChild);
+    const n = document.createElement('div');
+    n.textContent = text;
+    n.style.cssText = `background:#0f172a;color:#d9e9ff;border:1px solid #334155;border-radius:10px;padding:9px 12px;box-shadow:0 10px 20px rgba(0,0,0,.45),0 0 12px rgba(34,211,238,.18);opacity:0;transform:translateX(40px);transition:opacity .25s, transform .25s;font:13px/1.35 ui-sans-serif,system-ui`;
+    toasts.appendChild(n);
+    requestAnimationFrame(()=>{ n.style.opacity = '1'; n.style.transform = 'translateX(0)'; });
+    setTimeout(()=>{ n.style.opacity = '0'; n.style.transform = 'translateX(40px)'; setTimeout(()=>{ n.remove(); }, 250); }, 3000);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Initial collapsed state
+  // ─────────────────────────────────────────────────────────────────────────────
+  if (state.collapsed) setCollapsed(true);
+
+  // Expose a minimal API (optional)
+  window.NeonChat = {
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+    collapse: () => setCollapsed(true),
+    expand: () => setCollapsed(false),
+    isOnline: () => (ws && ws.readyState === 1)
+  };
+})();
 
 })();
 (function() {
