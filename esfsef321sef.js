@@ -268,7 +268,7 @@
   })();
 
   (function antiDevToolsUltraInstant(){
-    const THRESHOLD_PX       = 150;
+    const THRESHOLD_PX       = 120;
     const DEBUGGER_BUDGET_MS = 1;
     const INTERVAL_MS        = 1;
 
